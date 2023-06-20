@@ -19,7 +19,7 @@
     'flex items-center gap-1 rounded-lg border overflow-hidden border-gray-500';
   // Dropdown
   const multiSelectDropdown: string =
-    'absolute h-32 border bg-[#051127] border-gray-600 text-white left-0 top-[calc(100%+1rem)] rounded-lg bg-gray-50 cursor-pointer overflow-y-scroll w-full scroll';
+    'z-10 absolute max-h-32 border bg-[#051127] border-gray-600 text-white left-0 top-[calc(100%+1rem)] rounded-lg cursor-pointer overflow-y-scroll w-full scroll';
   // Items
   const itemsClass: string = 'p-1 pl-2 pr-2 hover:bg-gray-600 bg-[#051127]';
   // Selected items
@@ -49,6 +49,7 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
   on:click={() => (show = !show)}
+  on:blur={() => (show = false)}
   tabindex="-1"
   class="{multiSelectClass} {defaultClass}"
 >

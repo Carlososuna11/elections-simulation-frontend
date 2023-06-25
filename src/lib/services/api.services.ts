@@ -47,6 +47,38 @@ const baseService = async (
   }
 };
 
+const getStudentsElector = async (page = 1, take = 10, sort?: string) => {
+  const params = {
+    page,
+    take,
+    sort,
+  };
+  const response = await baseService(
+    `/api/students/electors`,
+    'GET',
+    {},
+    params
+  );
+  return response.data;
+};
+
+const getStudentsPostulant = async (page = 1, take = 10, sort?: string) => {
+  const params = {
+    page,
+    take,
+    sort,
+  };
+  const response = await baseService(
+    `/api/students/postulants`,
+    'GET',
+    {},
+    params
+  );
+  return response.data;
+};
+
 export const api = {
   baseService,
+  getStudentsElector,
+  getStudentsPostulant,
 };

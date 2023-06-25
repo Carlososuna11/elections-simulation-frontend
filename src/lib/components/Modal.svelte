@@ -32,7 +32,7 @@
 <div class="w-full h-screen fixed left-0 top-0 bg-[#000000ce] z-40">
   <div class="w-full h-full flex items-center justify-center">
     <div
-      class={`w-[90%] sm:w-[450px] lg:w-[650px] flex items-center justify-center bg-[#FAFAFA] rounded-xl slideInDown ${
+      class={`w-[90%] sm:w-[1000px] lg:w-[1000px] flex items-center justify-center bg-[#FAFAFA] rounded-xl slideInDown ${
         isOut && 'slideOutUp'
       } ${
         size === 'sm'

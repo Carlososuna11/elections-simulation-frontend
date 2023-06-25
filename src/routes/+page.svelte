@@ -4,6 +4,14 @@
   import AddMore from '../assets/svg/add-round-icon.svg';
   import { Accordion, AccordionItem, Toggle } from 'flowbite-svelte';
   import MultiSelect from '$lib/components/MultiSelect.svelte';
+  import ElectorCard from '$lib/components/ElectorCard.svelte';
+  import PostulantCard from '$lib/components/PostulantCard.svelte';
+  import { major, ingressStatus, semester } from '$lib/utils';
+  import type { StudentElector, StudentPostulant } from '$lib/types';
+  import { api } from '../lib/services/api.services';
+  import { onMount } from 'svelte';
+  import { getUrlSearchParams, replaceStateWithQuery } from '../lib/utils';
+  import InfiniteScroll from '../lib/components/InfiniteScroll.svelte';
 
   let selectInfo = {
     search: '',
@@ -15,61 +23,118 @@
     voteDIDES: undefined,
   };
 
-  const major = [
-    { name: 'Ingeniería Informática', value: 'IINF' },
-    { name: 'Ingeniería Civil', value: 'ICIV' },
-    { name: 'Ingeniería Industrial', value: 'IIND' },
-    { name: 'Ingeniería Telecomunicaciones', value: 'ITEL' },
-    { name: 'Arquitectura', value: 'ARQ' },
-    { name: 'Filosofía', value: 'FIL' },
-    { name: 'Psicología', value: 'PSI' },
-    { name: 'Letras', value: 'LET' },
-    { name: 'Comunicación Social', value: 'COM' },
-    { name: 'Educación', value: 'EDU' },
-    { name: 'Administración de Empresas', value: 'ADE' },
-    { name: 'Contaduría Pública', value: 'CON' },
-    { name: 'Relaciones Industriales', value: 'RIN' },
-    { name: 'Sociología', value: 'SOC' },
-    { name: 'Economía', value: 'ECO' },
-    { name: 'Derecho', value: 'DER' },
-    { name: 'Teología', value: 'TEO' },
-  ];
+  let listElectors = true;
 
-  const ingressStatus = [
-    { name: 'Retiro Retroactivo', value: 'DR' },
-    { name: 'Retiro Total', value: 'DT' },
-    { name: 'Inscripción Regular', value: 'IR' },
-    { name: 'Inscripción Extemporánea', value: 'IE' },
-    { name: 'Inscripción Tardía', value: 'IT' },
-    { name: 'Modificación de Inscripción', value: 'MI' },
-    { name: 'Tesis de Grado', value: 'TG' },
-  ];
+  let listMode = {
+    elector: {
+      visible: true,
+      method: api.getStudentsElector,
+    },
+    postulant: {
+      visible: false,
+      method: api.getStudentsPostulant,
+    },
+  };
 
-  const programCode = [
-    { name: 'Pre-Grado', value: 'PR' },
-    { name: 'Post-Grado', value: 'PG' },
-  ];
+  function getStudents() {
+    if (listMode.elector.visible) {
+      return listMode.elector.method;
+    } else {
+      return listMode.postulant.method;
+    }
+  }
 
-  const semester = [
-    { name: 'Primer Semestre', value: '01SE' },
-    { name: 'Segundo Semestre', value: '02SE' },
-    { name: 'Tercer Semestre', value: '03SE' },
-    { name: 'Cuarto Semestre', value: '04SE' },
-    { name: 'Quinto Semestre', value: '05SE' },
-    { name: 'Sexto Semestre', value: '06SE' },
-    { name: 'Séptimo Semestre', value: '07SE' },
-    { name: 'Octavo Semestre', value: '08SE' },
-    { name: 'Noveno Semestre', value: '09SE' },
-    { name: 'Décimo Semestre', value: '10SE' },
-  ];
+  /*******************************PAGINATION*********************************************/
+  let loadingMore: boolean = false;
+  let page = 1;
+  let limit = 6;
+  let hasNextPage = false;
+  let students: (StudentElector | StudentPostulant)[] = [];
+  let newStudents: (StudentElector | StudentPostulant)[] = [];
 
-  /*********************************************************************************/
+  async function getProjects() {
+    loadingMore = true;
+    try {
+      const method = getStudents();
+      console.log(method);
+      const response = await method(page, limit);
+      hasNextPage = response.meta.hasNextPage;
+      console.log(response);
+      newStudents = response.data;
+    } catch (error) {
+      console.log(error);
+    }
+    loadingMore = false;
+  }
+
+  async function loadMore() {
+    page++;
+    await getProjects();
+  }
+
+  $: students = [...students, ...newStudents];
+
+  onMount(async () => {
+    const searchParams = getUrlSearchParams();
+    const action = searchParams.action;
+    switch (action) {
+      case 'elector':
+        listMode.elector.visible = true;
+        listMode.postulant.visible = false;
+        break;
+      case 'postulant':
+        listMode.elector.visible = false;
+        listMode.postulant.visible = true;
+        break;
+      default:
+        listMode.elector.visible = true;
+        listMode.postulant.visible = false;
+        break;
+    }
+    listElectors = !listMode.elector.visible;
+    await getProjects();
+  });
+
+  $: !listElectors
+    ? (listMode.elector.visible = true) && (listMode.postulant.visible = false)
+    : (listMode.elector.visible = false) && (listMode.postulant.visible = true);
+
+  /********************************************************************************/
 </script>
 
 <div class="w-full lg:w-[75%] lg:mx-auto mt-24 lg:mt-14 pb-4">
   <div
     class="w-[90%] sm:w-[80%] md:w-[70%] lg:w-full relative flex flex-col gap-4 mx-auto lg:mx-0"
   >
+    <div class="mt-10">
+      <Toggle
+        size="custom"
+        on:change={async () => {
+          if (loadingMore) {
+            listElectors = !listElectors;
+            return;
+          }
+          replaceStateWithQuery({
+            action: listElectors ? 'elector' : 'postulant',
+          });
+
+          newStudents = [];
+          students = [];
+          page = 1;
+          hasNextPage = false;
+          await getProjects();
+        }}
+        customSize="w-14 h-7 after:top-0.5 after:left-[4px] after:h-6 after:w-6 !peer-focus:ring-[#051127] peer-checked:bg-[#051127]"
+        bind:checked={listElectors}
+        ><p class="block text-lg text-black font-bold">
+          {#if listElectors}
+            Postulantes
+          {:else}
+            Electores
+          {/if}
+        </p></Toggle
+      >
+    </div>
     <div
       class="w-[90%] sm:w-[80%] md:w-[70%] lg:w-full relative flex flex-col gap-4 mx-auto lg:mx-0"
     >
@@ -128,16 +193,6 @@
                 <MultiSelect
                   items={ingressStatus}
                   bind:value={selectInfo.ingressStatus}
-                />
-              </div>
-              <div class="w-full h-full">
-                <!-- svelte-ignore a11y-label-has-associated-control -->
-                <label class="block text-md font-medium text-black">
-                  Programa de Estudios
-                </label>
-                <MultiSelect
-                  items={programCode}
-                  bind:value={selectInfo.programCode}
                 />
               </div>
               <div class="w-full h-full">
@@ -202,15 +257,41 @@
         >
           <div class="w-full grid grid-cols-1 lg:grid-cols-3 gap-4">
             <!--  -->
+            {#if listMode.elector.visible}
+              {#each students as student}
+                <ElectorCard {student} />
+              {/each}
+              <InfiniteScroll
+                hasMore={newStudents.length > 0}
+                threshold={100}
+                on:loadMore={loadMore}
+                window={true}
+              />
+            {/if}
+            {#if listMode.postulant.visible}
+              {#each students as student}
+                <PostulantCard {student} />
+              {/each}
+              <InfiniteScroll
+                hasMore={newStudents.length > 0}
+                threshold={100}
+                on:loadMore={loadMore}
+                window={true}
+              />
+            {/if}
           </div>
           <!-- svelte-ignore a11y-click-events-have-key-events -->
           <div
+            on:click={() => loadMore()}
             class="w-full flex items-center justify-center flex-col py-4 cursor-pointer rounded-md hover:bg-[#FFFFFF50]"
           >
-            <!-- <div
-              class="w-4 h-4 rounded-full border-2 border-[#021529] border-l-transparent animate-spin"
-            /> -->
-            <img src={AddMore} alt="Add icon" />
+            {#if loadingMore}
+              <div
+                class="w-4 h-4 rounded-full border-2 border-[#021529] border-l-transparent animate-spin"
+              />
+            {:else if hasNextPage}
+              <img src={AddMore} alt="Add icon" />
+            {/if}
           </div>
         </section>
       </div>

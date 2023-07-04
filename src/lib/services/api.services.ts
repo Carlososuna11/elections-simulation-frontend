@@ -2,6 +2,7 @@ import { env } from '$env/dynamic/public';
 import type { ErrorResponse } from '../types';
 import axios, { AxiosError } from 'axios';
 import { alertStore } from '../stores';
+import type { ImportProjectDto } from '$lib/types/import.project';
 
 const BACKEND_URL = env.PUBLIC_BACKEND_BASE_URL;
 
@@ -77,7 +78,31 @@ const getStudentsPostulant = async (page = 1, take = 10, sort?: string) => {
   return response.data;
 };
 
+const loadElectorProject = async (body: ImportProjectDto): Promise<void> => {
+  const response = await baseService(
+    `/api/students/electors/upload-engine`,
+    'POST',
+    { 'Content-Type': 'multipart/form-data' },
+    {},
+    body
+  );
+  return await response.data;
+};
+
+const loadPostulantProject = async (body: ImportProjectDto): Promise<void> => {
+  const response = await baseService(
+    `/api/students/postulants/upload-engine`,
+    'POST',
+    { 'Content-Type': 'multipart/form-data' },
+    {},
+    body
+  );
+  return await response.data;
+};
+
 export const api = {
+  loadElectorProject,
+  loadPostulantProject,
   baseService,
   getStudentsElector,
   getStudentsPostulant,
